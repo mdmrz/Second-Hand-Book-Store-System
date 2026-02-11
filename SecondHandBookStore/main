@@ -1,0 +1,283 @@
+class Book:
+    def __init__(self, name, author, price):
+        self.name = name
+        self.author = author
+        self.price = price
+
+
+class BookNode:
+    def __init__(self, book):
+        self.book = book
+        self.next = None
+
+class Category:
+    def __init__(self, name):
+        self.name = name
+        self.subcategories = None
+        self.books = None            
+
+
+class CategoryNode:
+    def __init__(self, category):
+        self.category = category
+        self.next = None
+
+class BookSystem:
+
+    def __init__(self):
+        self.root = Category("Root")
+
+
+    def _valid_name(self, name):
+        if not name or name.strip() == "":
+            return False
+        for ch in name:
+            if not (ch.isalpha() or ch == " "):
+                return False
+        return True
+
+
+    def _find_category(self, current, name):
+        if current.name == name:
+            return current
+
+        temp = current.subcategories
+        while temp:
+            result = self._find_category(temp.category, name)
+            if result:
+                return result
+            temp = temp.next
+        return None
+
+    def add_category(self, new_name, parent_name):
+        if not self._valid_name(new_name) or not self._valid_name(parent_name):
+            print("Invalid name format.")
+            return
+
+        if self._find_category(self.root, new_name):
+            print("Category already exists.")
+            return
+
+        parent = self._find_category(self.root, parent_name)
+        if not parent:
+            print("Parent category not found.")
+            return
+
+        new_category = Category(new_name)
+        new_node = CategoryNode(new_category)
+
+        new_node.next = parent.subcategories
+        parent.subcategories = new_node
+
+        print("Category added successfully.")
+
+    def delete_category(self, name):
+        if name == "Root":
+            print("Root cannot be deleted.")
+            return
+
+        if not self._delete_category(self.root, name):
+            print("Category not found.")
+        else:
+            print("Category deleted successfully.")
+
+    def _delete_category(self, current, name):
+        prev = None
+        temp = current.subcategories
+
+        while temp:
+            if temp.category.name == name:
+                if prev:
+                    prev.next = temp.next
+                else:
+                    current.subcategories = temp.next
+                return True
+
+            if self._delete_category(temp.category, name):
+                return True
+
+            prev = temp
+            temp = temp.next
+        return False
+
+
+    def _book_exists(self, current, name):
+        temp = current.books
+        while temp:
+            if temp.book.name == name:
+                return True
+            temp = temp.next
+
+        sub = current.subcategories
+        while sub:
+            if self._book_exists(sub.category, name):
+                return True
+            sub = sub.next
+        return False
+
+    def add_book(self, name, author, price, category_name):
+
+        if not self._valid_name(name) or not self._valid_name(author):
+            print("Invalid book name or author.")
+            return
+
+        if price < 0:
+            print("Invalid price.")
+            return
+
+        if self._book_exists(self.root, name):
+            print("Book already exists.")
+            return
+
+        category = self._find_category(self.root, category_name)
+        if not category:
+            print("Category not found.")
+            return
+
+        book = Book(name, author, price)
+        node = BookNode(book)
+
+        node.next = category.books
+        category.books = node
+
+        print("Book added successfully.")
+
+    def delete_book(self, name):
+        if not self._delete_book(self.root, name):
+            print("Book not found.")
+        else:
+            print("Book deleted successfully.")
+
+    def _delete_book(self, current, name):
+        prev = None
+        temp = current.books
+
+        while temp:
+            if temp.book.name == name:
+                if prev:
+                    prev.next = temp.next
+                else:
+                    current.books = temp.next
+                return True
+            prev = temp
+            temp = temp.next
+
+        sub = current.subcategories
+        while sub:
+            if self._delete_book(sub.category, name):
+                return True
+            sub = sub.next
+        return False
+
+
+    def show_books(self, category_name):
+        category = self._find_category(self.root, category_name)
+        if not category:
+            print("Category not found.")
+            return
+
+        if not self._print_books_recursive(category):
+            print("No books found.")
+
+    def _print_books_recursive(self, category):
+        found = False
+
+        temp = category.books
+        while temp:
+            b = temp.book
+            print(f"Name: {b.name} | Author: {b.author} | Price: {b.price}")
+            found = True
+            temp = temp.next
+
+        sub = category.subcategories
+        while sub:
+            if self._print_books_recursive(sub.category):
+                found = True
+            sub = sub.next
+
+        return found
+
+
+    def search_book(self, name):
+        if not self._search_recursive(self.root, name):
+            print("Book not found.")
+
+    def _search_recursive(self, current, name):
+        temp = current.books
+        while temp:
+            if temp.book.name == name:
+                b = temp.book
+                print("Book found:")
+                print(f"Name: {b.name}")
+                print(f"Author: {b.author}")
+                print(f"Price: {b.price}")
+                return True
+            temp = temp.next
+
+        sub = current.subcategories
+        while sub:
+            if self._search_recursive(sub.category, name):
+                return True
+            sub = sub.next
+
+        return False
+
+
+
+def main():
+    system = BookSystem()
+
+    while True:
+        print("\n====== Second-Hand Book System ======")
+        print("1. Add Category")
+        print("2. Delete Category")
+        print("3. Add Book")
+        print("4. Delete Book")
+        print("5. Show Books of Category")
+        print("6. Search Book")
+        print("7. Exit")
+
+        choice = input("Select option: ").strip()
+
+        if choice == "1":
+            name = input("New Category Name: ").strip()
+            parent = input("Parent Category Name: ").strip()
+            system.add_category(name, parent)
+
+        elif choice == "2":
+            name = input("Category Name: ").strip()
+            system.delete_category(name)
+
+        elif choice == "3":
+            name = input("Book Name: ").strip()
+            author = input("Author: ").strip()
+            try:
+                price = float(input("Price: "))
+            except:
+                print("Invalid price.")
+                continue
+            category = input("Category Name: ").strip()
+            system.add_book(name, author, price, category)
+
+        elif choice == "4":
+            name = input("Book Name: ").strip()
+            system.delete_book(name)
+
+        elif choice == "5":
+            category = input("Category Name: ").strip()
+            system.show_books(category)
+
+        elif choice == "6":
+            name = input("Book Name: ").strip()
+            system.search_book(name)
+
+        elif choice == "7":
+            print("Exiting system...")
+            break
+
+        else:
+            print("Invalid option.")
+
+
+if __name__ == "__main__":
+    main()
